@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interactivo - I.E. Inka Wayna Qhapaq</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- RemixIcon CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet" />
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Ocultar barra de desplazamiento en la galería */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="bg-amber-50/50 text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- ========================================== -->
+    <!-- ENCABEZADO / HEADER INSTITUCIONAL          -->
+    <!-- ========================================== -->
+    <header class="bg-amber-900 text-white shadow-md z-30 flex items-center justify-between px-4 py-3 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div
+                class="bg-amber-900/90 p-1.5 rounded-xl border border-amber-600/60 shadow-inner flex items-center justify-center">
+                <img src="img/width_644.png" alt="Insignia I.E. Inka Wayna Qhapaq"
+                    class="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0 filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+            </div>
+            <div>
+                <h1 class="text-sm font-bold tracking-wide">I.E. Inka Wayna Qhapaq</h1>
+                <p class="text-[10px] text-amber-200">Huilloc, Ollantaytambo - Cusco</p>
+            </div>
+        </div>
+
+        <!-- Pestañas de Navegación de Vistas -->
+        <div class="flex items-center space-x-1 bg-amber-950/50 p-1 rounded-xl border border-amber-800">
+            <button id="btn-tab-map" onclick="switchView('map')"
+                class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-900 transition-all shadow-xs">
+                <i class="ri-map-pin-line"></i>
+                <span class="hidden sm:inline">Mapa</span>
+            </button>
+            <button id="btn-tab-list" onclick="switchView('list')"
+                class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-amber-200 transition-all">
+                <i class="ri-list-unordered"></i>
+                <span class="hidden sm:inline">Directorio</span>
+            </button>
+        </div>
+
+        <!-- Botón para añadir nuevo lugar -->
+        <button onclick="openAddModal()"
+            class="bg-amber-700 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1 border border-amber-600 transition-all shadow-xs">
+            <i class="ri-add-line"></i>
+            <span class="hidden sm:inline">Nuevo</span>
+        </button>
+    </header>
+
+    <!-- ========================================== -->
+    <!-- CONTENEDOR PRINCIPAL DE VISTAS             -->
+    <!-- ========================================== -->
+    <main class="flex-1 relative flex overflow-hidden">
+
+        <!-- ------------------------------------------ -->
+        <!-- VISTA 1: MAPA Y PANEL LATERAL (PC)         -->
+        <!-- ------------------------------------------ -->
+        <div id="view-map" class="absolute inset-0 flex">
+
+            <!-- Panel Lateral de Leyenda / Filtros -->
+            <aside id="sidebar-legend"
+                class="w-80 bg-white border-r border-amber-200/80 flex flex-col z-20 shadow-lg transition-all duration-300">
+                <div class="p-3 border-b border-amber-100 flex items-center justify-between bg-amber-50/50">
+                    <div class="flex items-center space-x-2">
+                        <i class="ri-compass-3-line text-amber-800"></i>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-amber-900">Lugares Registrados</h2>
+                    </div>
+                    <span id="counter-badge"
+                        class="bg-amber-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">0 Lugares</span>
+                </div>
+
+                <!-- Buscador rápido -->
+                <div class="p-2 border-b border-amber-100 bg-white">
+                    <div class="relative">
+                        <i class="ri-search-line absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                        <input type="text" oninput="filterLegendList(this.value)" placeholder="Buscar lugar..."
+                            class="w-full bg-gray-50 border border-amber-200 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <!-- Lista de elementos -->
+                <div class="flex-1 overflow-y-auto p-2">
+                    <ul id="desktop-legend-list" class="space-y-1">
+                        <!-- Generado dinámicamente desde el script.js -->
+                    </ul>
+                </div>
+
+                <!-- Botón ocultar barra lateral -->
+                <div class="p-2 border-t border-amber-100 bg-gray-50 text-center">
+                    <button onclick="toggleSidebar()"
+                        class="text-[10px] text-amber-800 font-semibold hover:underline flex items-center justify-center space-x-1 w-full py-1">
+                        <i id="sidebar-toggle-icon" class="ri-menu-fold-line text-sm"></i>
+                        <span>Ocultar panel lateral</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Botón flotante para reabrir el panel si está oculto -->
+            <button id="btn-show-sidebar" onclick="toggleSidebar()"
+                class="absolute left-3 top-3 bg-white text-amber-900 p-2.5 rounded-xl shadow-lg border border-amber-200 z-20 hidden items-center space-x-1.5 text-xs font-bold hover:bg-amber-50 transition-all">
+                <i class="ri-menu-unfold-line text-sm"></i>
+                <span class="hidden sm:inline">Panel</span>
+            </button>
+
+            <!-- Contenedor del Mapa Leaflet -->
+            <div id="map" class="flex-1 h-full z-10"></div>
+        </div>
+
+        <!-- ------------------------------------------ -->
+        <!-- VISTA 2: DIRECTORIO GENERAL (TARJETAS)     -->
+        <!-- ------------------------------------------ -->
+        <div id="view-list" class="absolute inset-0 bg-amber-50/30 overflow-y-auto p-4 hidden">
+            <div class="max-w-4xl mx-auto space-y-4">
+                <div
+                    class="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-amber-900">Directorio Institucional de Huilloc</h2>
+                        <p class="text-xs text-gray-500">Listado completo de puntos arqueológicos y espacios de interés
+                            histórico.</p>
+                    </div>
+                    <div class="relative w-full sm:w-64">
+                        <i class="ri-search-line absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                        <input type="text" oninput="filterFullList(this.value)" placeholder="Filtrar catálogo..."
+                            class="w-full bg-gray-50 border border-amber-200 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div id="full-directory-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Generado dinámicamente desde el script.js -->
+                </div>
+            </div>
+        </div>
+        <!-- ------------------------------------------ -->
+        <!-- VISTA 3: FICHA DE DETALLE INSTITUCIONAL    -->
+        <!-- ------------------------------------------ -->
+        <div id="view-detail"
+            class="absolute inset-0 bg-gradient-to-b from-amber-50/30 to-white overflow-y-auto hidden z-30">
+            <div class="max-w-3xl mx-auto pb-16">
+
+                <!-- Barra superior: Volver al mapa y selector multimedia -->
+                <div
+                    class="sticky top-0 bg-white/95 backdrop-blur-md px-3 sm:px-5 py-3 border-b border-amber-100/60 flex items-center justify-between gap-2 z-20 shadow-xs">
+
+                    <!-- Botón Volver al Mapa -->
+                    <button onclick="switchView('map')"
+                        class="flex items-center space-x-1.5 text-xs font-bold text-amber-900 bg-amber-100/80 px-3 py-2 rounded-xl border border-amber-200/60 hover:bg-amber-200 transition-all shadow-2xs shrink-0">
+                        <i class="ri-arrow-left-line text-sm"></i>
+                        <span class="hidden sm:inline">Volver al Mapa</span>
+                    </button>
+
+                    <!-- Selector multimedia -->
+                    <div
+                        class="flex items-center space-x-1 bg-gray-100/90 backdrop-blur-md p-1 rounded-xl border border-gray-200/60 shadow-2xs">
+                        <button onclick="switchMediaType('fotos')" id="btn-tab-fotos"
+                            class="flex items-center justify-center space-x-1.5 w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900 transition-all shrink-0"
+                            title="Fotos">
+                            <i class="ri-image-line text-sm"></i>
+                            <span class="hidden sm:inline">Fotos</span>
+                        </button>
+                        <button onclick="switchMediaType('video')" id="btn-tab-video"
+                            class="flex items-center justify-center space-x-1.5 w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900 transition-all shrink-0"
+                            title="Video">
+                            <i class="ri-video-line text-sm"></i>
+                            <span class="hidden sm:inline">Video</span>
+                        </button>
+                        <button onclick="switchMediaType('audio')" id="btn-tab-audio"
+                            class="flex items-center justify-center space-x-1.5 w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900 transition-all shrink-0"
+                            title="Audio">
+                            <i class="ri-volume-up-line text-sm"></i>
+                            <span class="hidden sm:inline">Audio</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visor Multimedia Superior -->
+                <div class="relative w-full h-72 sm:h-96 md:h-[420px] bg-gray-900 overflow-hidden shadow-md">
+
+                    <!-- CONTENEDOR 1: FOTOS -->
+                    <div id="media-container-fotos" class="w-full h-full relative">
+                        <div id="detail-gallery-scroll"
+                            class="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
+                            onmouseenter="pauseAutoSlide()" onmouseleave="resumeAutoSlide()">
+                            <!-- Se inyectan las fotos dinámicamente -->
+                        </div>
+                        <div
+                            class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
+                        </div>
+                        <div id="carousel-controls" class="hidden">
+                            <button onclick="scrollGallery('prev')"
+                                class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/20 shadow-lg">
+                                <i class="ri-arrow-left-s-line text-lg"></i>
+                            </button>
+                            <button onclick="scrollGallery('next')"
+                                class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/20 shadow-lg">
+                                <i class="ri-arrow-right-s-line text-lg"></i>
+                            </button>
+                            <div id="carousel-indicators"
+                                class="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex space-x-1.5 sm:space-x-2 bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTENEDOR 2: VIDEO (Soporta YouTube, Shorts y Google Drive) -->
+                    <div id="media-container-video"
+                        class="w-full h-full hidden relative bg-black flex items-center justify-center">
+                        <!-- Iframe para YouTube y Shorts -->
+                        <iframe id="detail-video-iframe" class="w-full h-full border-0 hidden"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+
+                        <!-- Etiqueta Video HTML5 para Google Drive -->
+                        <video id="detail-video-tag" class="w-full h-full object-contain hidden" controls playsinline>
+                            Tu navegador no soporta reproducción de video.
+                        </video>
+
+                        <!-- Botón de silenciar/activar audio para Drive -->
+                        <button onclick="toggleVideoMute()" id="btn-toggle-sound"
+                            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 hover:bg-black text-white px-3.5 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-bold backdrop-blur-md border border-white/20 shadow-lg flex items-center space-x-2 transition-all whitespace-nowrap hidden">
+                            <i class="ri-volume-mute-fill text-amber-400 text-sm" id="sound-icon"></i>
+                            <span id="sound-text">Activar Audio del Video</span>
+                        </button>
+                    </div>
+
+                    <!-- CONTENEDOR 3: AUDIO -->
+                    <div id="media-container-audio"
+                        class="w-full h-full hidden relative bg-amber-950/95 flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+                        <div
+                            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 text-xl sm:text-2xl mb-3 sm:mb-4 shadow-inner">
+                            <i class="ri-headphone-line animate-pulse"></i>
+                        </div>
+                        <h3 class="text-white font-bold text-xs sm:text-sm mb-1 px-4" id="audio-title-label">Audio Guía
+                            del Lugar</h3>
+                        <p class="text-amber-200/70 text-[11px] sm:text-xs mb-4 sm:mb-6 px-4">Escucha la narración
+                            detallada de este espacio</p>
+                        <audio id="detail-audio" controls class="w-full max-w-sm sm:max-w-md accent-amber-500 h-10">
+                            Tu navegador no soporta elementos de audio.
+                        </audio>
+                    </div>
+
+                </div>
+
+                <!-- Contenido Informativo Detallado -->
+                <div class="px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 space-y-5 sm:space-y-6">
+                    <div
+                        class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-amber-100 shadow-xs space-y-3">
+                        <div>
+                            <span id="detail-subtitle"
+                                class="text-[10px] font-extrabold text-amber-800 uppercase bg-amber-100/70 px-2.5 py-1 rounded-lg border border-amber-200">Tipo</span>
+                            <h2 id="detail-title"
+                                class="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 mt-2 tracking-tight">
+                                Nombre del Lugar</h2>
+                        </div>
+                        <div
+                            class="flex flex-wrap items-center gap-3 text-xs font-medium text-gray-600 pt-2 border-t border-gray-100">
+                            <div
+                                class="flex items-center space-x-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
+                                <i class="ri-map-pin-2-fill text-amber-800 text-sm"></i>
+                                <span id="detail-location">Ubicación</span>
+                            </div>
+                            <div
+                                class="flex items-center space-x-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
+                                <i class="ri-time-fill text-amber-800 text-sm"></i>
+                                <span id="detail-schedule">Abierto</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bloques de Texto -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                        <div
+                            class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-100 shadow-xs space-y-3 flex flex-col justify-between">
+                            <div>
+                                <h3
+                                    class="text-xs font-extrabold uppercase tracking-wider text-amber-900 flex items-center space-x-2 mb-2">
+                                    <span
+                                        class="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center text-amber-900 shrink-0">
+                                        <i class="ri-book-open-line text-sm"></i>
+                                    </span>
+                                    <span>Reseña Histórica</span>
+                                </h3>
+                                <p id="detail-history" class="text-xs sm:text-sm text-gray-600 leading-relaxed">Cargando
+                                    historia...</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-100 shadow-xs space-y-3 flex flex-col justify-between">
+                            <div>
+                                <h3
+                                    class="text-xs font-extrabold uppercase tracking-wider text-amber-900 flex items-center space-x-2 mb-2">
+                                    <span
+                                        class="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center text-amber-900 shrink-0">
+                                        <i class="ri-information-line text-sm"></i>
+                                    </span>
+                                    <span>Descripción Detallada</span>
+                                </h3>
+                                <p id="detail-descripcion" class="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                                    Cargando descripción...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TARJETA FLOTANTE MÓVIL (BOTTOM SHEET)      -->
+        <!-- ========================================== -->
+        <div id="mobile-bottom-sheet"
+            class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl border-t border-amber-200 p-4 transform translate-y-full transition-transform duration-300 z-40 sm:hidden">
+            <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3"></div>
+            <div class="flex items-center space-x-3">
+                <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-gray-100 border border-amber-100">
+                    <img id="sheet-img" src="" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <span id="sheet-badge"
+                        class="text-[9px] font-bold text-amber-800 uppercase bg-amber-50 px-1.5 py-0.5 rounded">Tipo</span>
+                    <h3 id="sheet-title" class="text-sm font-bold text-gray-900 truncate mt-0.5">Título</h3>
+                    <p id="sheet-subtitle" class="text-[11px] text-gray-500 truncate">Subtítulo</p>
+                    <p id="sheet-schedule" class="text-[10px] text-amber-900 font-semibold truncate mt-0.5">Horario</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 mt-3 pt-3 border-t border-gray-100">
+                <button onclick="openDetailView()"
+                    class="flex-1 bg-amber-900 text-white py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1 shadow-xs">
+                    <i class="ri-eye-line"></i>
+                    <span>Ver Información Completa</span>
+                </button>
+                <button onclick="closeBottomSheet()"
+                    class="bg-gray-100 text-gray-600 px-3 py-2 rounded-xl text-xs font-bold">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL: AÑADIR NUEVO LUGAR                  -->
+        <!-- ========================================== -->
+        <div id="modal-add-site"
+            class="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+            <div
+                class="bg-white rounded-3xl max-w-lg w-full p-5 shadow-2xl border border-amber-200 max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="ri-map-pin-add-line text-amber-800 text-lg"></i>
+                        <h3 class="text-sm font-bold text-amber-900">Añadir Nuevo Lugar de Interés</h3>
+                    </div>
+                    <button onclick="closeAddModal()" class="text-gray-400 hover:text-gray-700 p-1">
+                        <i class="ri-close-line text-lg"></i>
+                    </button>
+                </div>
+
+                <form id="form-add-site" onsubmit="handleAddNewSite(event)" class="space-y-3">
+                    <!-- Tipo y Nombre -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Tipo</label>
+                            <input type="text" id="input-tipo" placeholder="Ej: Sitio Arqueológico" required
+                                class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Nombre</label>
+                            <input type="text" id="input-nombre" required
+                                class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+
+                    <!-- Resumen -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Resumen</label>
+                        <input type="text" id="input-resumen" placeholder="Breve descripción de una línea"
+                            class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+
+                    <!-- Historia -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Historia</label>
+                        <textarea id="input-historia" rows="2"
+                            class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500"></textarea>
+                    </div>
+
+                    <!-- Descripción -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Descripción</label>
+                        <textarea id="input-descripcion" rows="2"
+                            class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500"></textarea>
+                    </div>
+
+                    <!-- Ubicación -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Ubicación</label>
+                        <input type="text" id="input-ubicacion" placeholder="Comunidad de Huilloc, Cusco"
+                            class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+
+                    <!-- Botón de asistencia para capturar coordenadas del mapa -->
+                    <div
+                        class="bg-amber-50/70 p-2.5 rounded-xl border border-amber-200 flex items-center justify-between">
+                        <div>
+                            <span class="block text-[10px] font-bold text-amber-900 uppercase">Obtener
+                                Coordenadas</span>
+                            <span class="text-[9px] text-gray-500">Selecciona la ubicación exacta en el mapa</span>
+                        </div>
+                        <button type="button" onclick="activarCapturaCoordenadas()"
+                            class="bg-amber-800 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center space-x-1 shadow-xs transition-all">
+                            <i class="ri-map-pin-user-line"></i>
+                            <span>Hacer clic en mapa</span>
+                        </button>
+                    </div>
+
+                    <!-- Latitud y Longitud -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Latitud</label>
+                            <input type="number" step="any" id="input-lat" placeholder="-13.257" required
+                                class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Longitud</label>
+                            <input type="number" step="any" id="input-lng" placeholder="-72.263" required
+                                class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+
+                    <!-- FOTOS (URLS DE GOOGLE DRIVE SEPARADAS POR COMAS) -->
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">URLs de Fotos (Google
+                            Drive)</label>
+                        <input type="text" id="input-fotos" placeholder="url1, url2, url3" required
+                            class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500 text-gray-800">
+                        <span class="text-[9px] text-gray-500 mt-1 block">Puedes colocar varias URLs de Google Drive
+                            separadas por comas (,).</span>
+                    </div>
+
+                    <!-- AUDIO Y VIDEO (URL DE GOOGLE DRIVE) -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Audio -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Audio URL
+                                (Opcional)</label>
+                            <input type="text" id="input-audio" placeholder="https://drive.google.com/..."
+                                class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500 text-gray-800">
+                            <span class="text-[9px] text-gray-500 mt-1 block">Enlace de Google Drive para el
+                                audio.</span>
+                        </div>
+
+                        <!-- Video -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-700 uppercase mb-1">Video URL
+                                (Opcional)</label>
+                            <input type="text" id="input-video" placeholder="https://drive.google.com/..."
+                                class="w-full bg-gray-50 border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500 text-gray-800">
+                            <span class="text-[9px] text-gray-500 mt-1 block">Enlace de Google Drive para el
+                                video.</span>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="flex items-center space-x-2 pt-2">
+                        <button type="submit"
+                            class="flex-1 bg-amber-900 hover:bg-amber-800 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-xs">
+                            Guardar y Añadir al Mapa
+                        </button>
+                        <button type="button" onclick="closeAddModal()"
+                            class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-xl text-xs font-bold transition-all">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Leaflet JS -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <!-- Script Principal del Proyecto -->
+        <script src="script.js"></script>
+</body>
+
+</html>
