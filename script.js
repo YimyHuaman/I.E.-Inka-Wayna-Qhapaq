@@ -199,6 +199,113 @@ function parseCSV(text) {
 // ==========================================
 // 5. RENDERIZADO GENERAL DE LA INTERFAZ
 // ==========================================
+// ==========================================
+// 0. FUNCIÓN AUXILIAR: PIN ABAJO + FOTO CIRCULAR ARRIBA
+// ==========================================
+function createPlaceIcon(imageUrl) {
+  const photo =
+    imageUrl && imageUrl.trim() !== "" ? imageUrl : "img/width_644.png";
+
+  return L.divIcon({
+    className: "custom-image-marker",
+    html: `
+      <div style="position: relative; width: 48px; height: 64px; display: flex; flex-direction: column; align-items: center;">
+        
+        <!-- Círculo con la foto en la parte superior -->
+        <div style="
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          border: 3px solid #78350f;
+          overflow: hidden;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+          background-color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+        ">
+          <img src="${photo}" style="
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          " alt="Lugar">
+        </div>
+
+        <!-- Pin de ubicación en la parte inferior -->
+        <div style="
+          margin-top: -6px;
+          z-index: 1;
+          filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35));
+          display: flex;
+          justify-content: center;
+        ">
+          <i class="ri-map-pin-fill" style="font-size: 28px; color: #78350f;"></i>
+        </div>
+
+      </div>
+    `,
+    iconSize: [48, 64],
+    iconAnchor: [24, 64], // Ancla la punta exacta del pin en las coordenadas del mapa
+    popupAnchor: [0, -60],
+  });
+}
+
+// ==========================================
+// 0. FUNCIÓN AUXILIAR: PIN ABAJO + FOTO CIRCULAR ARRIBA
+// ==========================================
+function createPlaceIcon(imageUrl) {
+  const photo =
+    imageUrl && imageUrl.trim() !== "" ? imageUrl : "img/width_644.png";
+
+  return L.divIcon({
+    className: "custom-image-marker",
+    html: `
+      <div style="position: relative; width: 48px; height: 64px; display: flex; flex-direction: column; align-items: center;">
+        
+        <!-- Círculo con la foto en la parte superior -->
+        <div style="
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          border: 3px solid #78350f;
+          overflow: hidden;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+          background-color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+        ">
+          <img src="${photo}" style="
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          " alt="Lugar">
+        </div>
+
+        <!-- Pin de ubicación en la parte inferior -->
+        <div style="
+          margin-top: -6px;
+          z-index: 1;
+          filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35));
+          display: flex;
+          justify-content: center;
+        ">
+          <i class="ri-map-pin-fill" style="font-size: 28px; color: #78350f;"></i>
+        </div>
+
+      </div>
+    `,
+    iconSize: [48, 64],
+    iconAnchor: [24, 64], // Ancla la punta exacta del pin en las coordenadas del mapa
+    popupAnchor: [0, -60],
+  });
+}
+
+// ==========================================
+// 5. RENDERIZADO GENERAL DE LA INTERFAZ
+// ==========================================
 function renderApp() {
   const desktopLegend = document.getElementById("desktop-legend-list");
   const fullDirectory = document.getElementById("full-directory-grid");
@@ -219,7 +326,14 @@ function renderApp() {
     count++;
 
     if (!isNaN(sitio.latitud) && !isNaN(sitio.longitud)) {
-      const marker = L.marker([sitio.latitud, sitio.longitud]).addTo(map);
+      // Obtenemos la primera foto del sitio para el marcador
+      const fotoSitio =
+        sitio.fotos && sitio.fotos.length > 0 ? sitio.fotos[0] : "";
+      const customIcon = createPlaceIcon(fotoSitio);
+
+      const marker = L.marker([sitio.latitud, sitio.longitud], {
+        icon: customIcon,
+      }).addTo(map);
 
       marker.on("click", () => {
         selectSite(key);
@@ -281,7 +395,6 @@ function renderApp() {
   const badge = document.getElementById("counter-badge");
   if (badge) badge.textContent = `${count} Lugares`;
 }
-
 // ==========================================
 // 6. SELECCIÓN DE LUGARES Y MULTIMEDIA (CORREGIDO)
 // ==========================================
@@ -517,7 +630,9 @@ function resumeAutoSlide() {
 // 7. CONTROL DE VISTAS Y MODALES
 // ==========================================
 function switchView(viewName) {
-  stopAutoSlide();
+  if (typeof stopAutoSlide === "function") {
+    stopAutoSlide();
+  }
 
   const viewMap = document.getElementById("view-map");
   const viewList = document.getElementById("view-list");
@@ -530,12 +645,9 @@ function switchView(viewName) {
   const btnMap = document.getElementById("btn-tab-map");
   const btnList = document.getElementById("btn-tab-list");
 
-  const inactiveClasses = [
-    "bg-gray-100",
-    "text-gray-600",
-    "hover:text-amber-900",
-  ];
-  const activeClasses = ["bg-amber-100", "text-amber-900"];
+  // Clases actualizadas para que combinen perfectamente con tu barra marrón oscura
+  const inactiveClasses = ["text-gray-200", "hover:text-amber-200"];
+  const activeClasses = ["bg-amber-100", "text-amber-950", "shadow-xs"];
 
   if (btnMap) {
     btnMap.classList.remove(...activeClasses);
@@ -553,7 +665,9 @@ function switchView(viewName) {
       btnMap.classList.add(...activeClasses);
     }
     setTimeout(() => {
-      if (map) map.invalidateSize();
+      if (typeof map !== "undefined" && map !== null) {
+        map.invalidateSize();
+      }
     }, 100);
   } else if (viewName === "list") {
     if (viewList) viewList.classList.remove("hidden");
@@ -563,7 +677,9 @@ function switchView(viewName) {
     }
   } else if (viewName === "detail") {
     if (viewDetail) viewDetail.classList.remove("hidden");
-    startAutoSlide();
+    if (typeof startAutoSlide === "function") {
+      startAutoSlide();
+    }
   }
 }
 
