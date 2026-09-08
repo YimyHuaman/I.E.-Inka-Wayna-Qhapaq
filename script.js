@@ -84,7 +84,7 @@ function formatVideoUrl(url) {
 }
 
 // ==========================================
-// 3. DESCARGA Y MAPEO DE DATOS DESDE GOOGLE SHEETS
+// 3. CARGADOR Y PROCESADOR DE GOOGLE SHEET
 // ==========================================
 async function loadGoogleSheetData() {
   try {
@@ -103,17 +103,30 @@ async function loadGoogleSheetData() {
           ? row.nombre.toLowerCase().replace(/[^a-z0-9]/g, "_")
           : Math.random().toString();
 
+      // 1. Procesar FOTOS (Usa tu función formatImageUrl existente)
       let imagenesArray = [];
       if (row.fotos) {
         imagenesArray = row.fotos
           .split(",")
-          .map((img) => formatImageUrl(img))
+          .map((img) => formatImageUrl(img)) // <--- AQUí USA TU FUNCIÓN
           .filter((img) => img.length > 0);
       }
       if (imagenesArray.length === 0) {
         imagenesArray = [
           "https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=800&q=80",
         ];
+      }
+
+      // 2. Procesar AUDIO (Usa tu función formatImageUrl porque los audios de Drive funcionan igual)
+      let audioUrl = "";
+      if (row.audio) {
+        audioUrl = formatImageUrl(row.audio); // <--- AQUÍ USA TU FUNCIÓN PARA AUDIO
+      }
+
+      // 3. Procesar VIDEO (Usa tu función formatVideoUrl existente)
+      let videoUrl = "";
+      if (row.video) {
+        videoUrl = formatVideoUrl(row.video); // <--- AQUÍ USA TU FUNCIÓN PARA VIDEO
       }
 
       sitiosArqueologicos[uniqueKey] = {
@@ -128,8 +141,8 @@ async function loadGoogleSheetData() {
         latitud: parseFloat(row.latitud) || -13.257,
         longitud: parseFloat(row.longitud) || -72.263,
         fotos: imagenesArray,
-        audio: row.audio ? formatImageUrl(row.audio.trim()) : "",
-        video: row.video ? row.video.trim() : "",
+        audio: audioUrl, // URL de audio procesada
+        video: videoUrl, // URL de video procesada
       };
     });
 
@@ -197,28 +210,41 @@ function parseCSV(text) {
 }
 
 // ==========================================
-// 5. RENDERIZADO GENERAL DE LA INTERFAZ
-// ==========================================
-// ==========================================
-// 0. FUNCIÓN AUXILIAR: PIN ABAJO + FOTO CIRCULAR ARRIBA
+// FUNCIÓN AUXILIAR: PIN DE MAPA CON FOTO CIRCULAR
 // ==========================================
 function createPlaceIcon(imageUrl) {
-  const photo =
-    imageUrl && imageUrl.trim() !== "" ? imageUrl : "img/width_644.png";
+  let photo = imageUrl && imageUrl.trim() !== "" ? imageUrl.trim() : "img/width_644.png";
+
+  if (photo.includes("drive.google.com")) {
+    let match = photo.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      photo = `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    }
+  }
 
   return L.divIcon({
     className: "custom-image-marker",
     html: `
-      <div style="position: relative; width: 48px; height: 64px; display: flex; flex-direction: column; align-items: center;">
+      <div style="
+        position: relative; 
+        width: 64px; 
+        height: 80px; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center;
+        transition: transform 0.2s ease;
+      ">
         
-        <!-- Círculo con la foto en la parte superior -->
+        <!-- Círculo con la foto más grande (60x60px) -->
         <div style="
-          width: 42px;
-          height: 42px;
+          width: 60px;
+          height: 60px;
+          min-width: 60px;
+          min-height: 60px;
           border-radius: 50%;
           border: 3px solid #78350f;
           overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.4);
           background-color: white;
           display: flex;
           align-items: center;
@@ -229,7 +255,7 @@ function createPlaceIcon(imageUrl) {
             width: 100%;
             height: 100%;
             object-fit: cover;
-          " alt="Lugar">
+          " alt="Lugar" onerror="this.onerror=null; this.src='img/width_644.png';">
         </div>
 
         <!-- Pin de ubicación en la parte inferior -->
@@ -240,69 +266,16 @@ function createPlaceIcon(imageUrl) {
           display: flex;
           justify-content: center;
         ">
-          <i class="ri-map-pin-fill" style="font-size: 28px; color: #78350f;"></i>
+          <i class="ri-map-pin-fill" style="font-size: 32px; color: #78350f;"></i>
         </div>
 
       </div>
     `,
-    iconSize: [48, 64],
-    iconAnchor: [24, 64], // Ancla la punta exacta del pin en las coordenadas del mapa
-    popupAnchor: [0, -60],
+    iconSize: [64, 80],
+    iconAnchor: [32, 80], // Ajustado al centro exacto de la punta del pin
+    popupAnchor: [0, -75],
   });
 }
-
-// ==========================================
-// 0. FUNCIÓN AUXILIAR: PIN ABAJO + FOTO CIRCULAR ARRIBA
-// ==========================================
-function createPlaceIcon(imageUrl) {
-  const photo =
-    imageUrl && imageUrl.trim() !== "" ? imageUrl : "img/width_644.png";
-
-  return L.divIcon({
-    className: "custom-image-marker",
-    html: `
-      <div style="position: relative; width: 48px; height: 64px; display: flex; flex-direction: column; align-items: center;">
-        
-        <!-- Círculo con la foto en la parte superior -->
-        <div style="
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          border: 3px solid #78350f;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.4);
-          background-color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 2;
-        ">
-          <img src="${photo}" style="
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          " alt="Lugar">
-        </div>
-
-        <!-- Pin de ubicación en la parte inferior -->
-        <div style="
-          margin-top: -6px;
-          z-index: 1;
-          filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35));
-          display: flex;
-          justify-content: center;
-        ">
-          <i class="ri-map-pin-fill" style="font-size: 28px; color: #78350f;"></i>
-        </div>
-
-      </div>
-    `,
-    iconSize: [48, 64],
-    iconAnchor: [24, 64], // Ancla la punta exacta del pin en las coordenadas del mapa
-    popupAnchor: [0, -60],
-  });
-}
-
 // ==========================================
 // 5. RENDERIZADO GENERAL DE LA INTERFAZ
 // ==========================================
@@ -310,25 +283,28 @@ function renderApp() {
   const desktopLegend = document.getElementById("desktop-legend-list");
   const fullDirectory = document.getElementById("full-directory-grid");
 
-  if (!desktopLegend || !fullDirectory) return;
-
-  desktopLegend.innerHTML = "";
-  fullDirectory.innerHTML = "";
-
-  let count = 0;
-
   // Limpiar marcadores anteriores si existen
   Object.values(markersLayer).forEach((marker) => marker.remove());
   markersLayer = {};
+
+  let count = 0;
+
+  // Limpiar contenedores de manera independiente si existen en el HTML actual
+  if (desktopLegend) desktopLegend.innerHTML = "";
+  if (fullDirectory) fullDirectory.innerHTML = "";
 
   Object.keys(sitiosArqueologicos).forEach((key) => {
     const sitio = sitiosArqueologicos[key];
     count++;
 
+    // Obtener la primera foto de manera segura con respaldo por defecto
+    const fotoSitio =
+      sitio.fotos && sitio.fotos.length > 0
+        ? sitio.fotos[0]
+        : "https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=800&q=80";
+
+    // 1. Crear y añadir marcador en el mapa
     if (!isNaN(sitio.latitud) && !isNaN(sitio.longitud)) {
-      // Obtenemos la primera foto del sitio para el marcador
-      const fotoSitio =
-        sitio.fotos && sitio.fotos.length > 0 ? sitio.fotos[0] : "";
       const customIcon = createPlaceIcon(fotoSitio);
 
       const marker = L.marker([sitio.latitud, sitio.longitud], {
@@ -346,55 +322,60 @@ function renderApp() {
       markersLayer[key] = marker;
     }
 
-    // Elemento lista lateral (PC)
-    const li = document.createElement("li");
-    li.className =
-      "flex items-center space-x-2 p-2 rounded-xl hover:bg-amber-50 cursor-pointer transition-colors border-b border-gray-50 legend-item";
-    li.setAttribute("data-name", sitio.nombre.toLowerCase());
-    li.innerHTML = `
-            <span class="bg-amber-800 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">${sitio.id || count}</span>
-            <div class="truncate flex-1">
-                <span class="font-bold text-gray-900 block truncate text-xs">${sitio.nombre}</span>
-                <span class="text-[10px] text-gray-500">${sitio.tipo}</span>
-            </div>
-        `;
-    li.onclick = () => {
-      if (!isNaN(sitio.latitud))
-        map.setView([sitio.latitud, sitio.longitud], 15);
-      selectSite(key);
-      if (window.innerWidth < 768) {
-        showBottomSheet();
-      }
-    };
-    desktopLegend.appendChild(li);
+    // 2. Elemento lista lateral (PC) - Solo si el contenedor existe
+    if (desktopLegend) {
+      const li = document.createElement("li");
+      li.className =
+        "flex items-center space-x-2 p-2 rounded-xl hover:bg-amber-50 cursor-pointer transition-colors border-b border-gray-50 legend-item";
+      li.setAttribute("data-name", sitio.nombre.toLowerCase());
+      li.innerHTML = `
+        <span class="bg-amber-800 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">${sitio.id || count}</span>
+        <div class="truncate flex-1">
+            <span class="font-bold text-gray-900 block truncate text-xs">${sitio.nombre}</span>
+            <span class="text-[10px] text-gray-500">${sitio.tipo}</span>
+        </div>
+      `;
+      li.onclick = () => {
+        if (!isNaN(sitio.latitud))
+          map.setView([sitio.latitud, sitio.longitud], 15);
+        selectSite(key);
+        if (window.innerWidth < 768) {
+          showBottomSheet();
+        }
+      };
+      desktopLegend.appendChild(li);
+    }
 
-    // Tarjeta del directorio general (Vista Lista)
-    const card = document.createElement("div");
-    card.className =
-      "bg-white p-3 rounded-2xl border border-amber-200/80 shadow-xs flex items-center space-x-3 cursor-pointer hover:border-amber-400 transition-all directory-card";
-    card.setAttribute("data-name", sitio.nombre.toLowerCase());
-    card.innerHTML = `
-            <div class="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-gray-100 border border-amber-100">
-                <img src="${sitio.fotos[0]}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=800&q=80'">
-            </div>
-            <div class="flex-1 min-w-0">
-                <span class="text-[9px] font-bold text-amber-800 uppercase bg-amber-50 px-1.5 py-0.5 rounded">${sitio.tipo}</span>
-                <h4 class="text-xs font-bold text-gray-900 truncate mt-0.5">${sitio.nombre}</h4>
-                <p class="text-[10px] text-gray-500 truncate">${sitio.resumen}</p>
-            </div>
-        `;
-    card.onclick = () => {
-      selectSite(key);
-      switchView("map");
-      if (!isNaN(sitio.latitud))
-        map.setView([sitio.latitud, sitio.longitud], 15);
-    };
-    fullDirectory.appendChild(card);
+    // 3. Tarjeta del directorio general (Vista Lista) - Solo si el contenedor existe
+    if (fullDirectory) {
+      const card = document.createElement("div");
+      card.className =
+        "bg-white p-3 rounded-2xl border border-amber-200/80 shadow-xs flex items-center space-x-3 cursor-pointer hover:border-amber-400 transition-all directory-card";
+      card.setAttribute("data-name", sitio.nombre.toLowerCase());
+      card.innerHTML = `
+        <div class="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-gray-100 border border-amber-100">
+            <img src="${fotoSitio}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=800&q=80'">
+        </div>
+        <div class="flex-1 min-w-0">
+            <span class="text-[9px] font-bold text-amber-800 uppercase bg-amber-50 px-1.5 py-0.5 rounded">${sitio.tipo}</span>
+            <h4 class="text-xs font-bold text-gray-900 truncate mt-0.5">${sitio.nombre}</h4>
+            <p class="text-[10px] text-gray-500 truncate">${sitio.resumen}</p>
+        </div>
+      `;
+      card.onclick = () => {
+        selectSite(key);
+        switchView("map");
+        if (!isNaN(sitio.latitud))
+          map.setView([sitio.latitud, sitio.longitud], 15);
+      };
+      fullDirectory.appendChild(card);
+    }
   });
 
   const badge = document.getElementById("counter-badge");
   if (badge) badge.textContent = `${count} Lugares`;
 }
+
 // ==========================================
 // 6. SELECCIÓN DE LUGARES Y MULTIMEDIA (CORREGIDO)
 // ==========================================
@@ -413,7 +394,9 @@ function selectSite(siteKey) {
   }
 
   currentImageIndex = 0;
-  setupGalleryScroll();
+  if (typeof setupGalleryScroll === "function") {
+    setupGalleryScroll();
+  }
 
   // Actualizar elementos tarjeta flotante móvil
   const sheetImg = document.getElementById("sheet-img");
@@ -461,16 +444,30 @@ function selectSite(siteKey) {
   if (dDesc)
     dDesc.textContent = sitio.descripcion || "Sin descripción detallada.";
 
-  // Manejo de Audio en Ficha Detalle
-  const audioWrapper = document.getElementById("container-audio-wrapper");
+  // ==========================================
+  // MANEJO DE AUDIO (Sincronizado con HTML)
+  // ==========================================
+  const audioWrapper = document.getElementById("media-container-audio");
   const audioTag = document.getElementById("detail-audio");
+
   if (audioWrapper && audioTag) {
-    if (sitio.audio && sitio.audio.trim() !== "") {
+    if (
+      sitio.audio &&
+      sitio.audio.trim() !== "" &&
+      sitio.audio.includes("http")
+    ) {
       audioWrapper.classList.remove("hidden");
-      audioTag.src =
-        typeof formatMultimediaUrl === "function"
-          ? formatMultimediaUrl(sitio.audio)
-          : sitio.audio;
+      let directAudioUrl = sitio.audio.trim();
+
+      // Convertir enlace de Google Drive si es necesario
+      if (directAudioUrl.includes("drive.google.com")) {
+        let match = directAudioUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          directAudioUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+      }
+
+      audioTag.src = directAudioUrl;
       audioTag.load();
     } else {
       audioWrapper.classList.add("hidden");
@@ -479,24 +476,34 @@ function selectSite(siteKey) {
     }
   }
 
-  // Manejo de Video en Ficha Detalle (CORREGIDO)
-  const videoWrapper = document.getElementById("container-video-wrapper");
-  const videoIframe = document.getElementById("detail-video-iframe"); // Exclusivo para YouTube
-  const videoTag = document.getElementById("detail-video-tag"); // Para Google Drive y archivos directos
+  // ==========================================
+  // MANEJO DE VIDEO (YouTube, Shorts y Drive)
+  // ==========================================
+  const videoWrapper = document.getElementById("media-container-video");
+  const videoIframe = document.getElementById("detail-video-iframe");
+  const videoTag = document.getElementById("detail-video-tag");
+  const btnSound = document.getElementById("btn-toggle-sound");
 
   if (videoWrapper) {
     if (sitio.video && sitio.video.trim() !== "") {
       videoWrapper.classList.remove("hidden");
-      const formattedVideoUrl =
-        typeof formatVideoUrl === "function"
-          ? formatVideoUrl(sitio.video)
-          : sitio.video;
+      const videoUrl = sitio.video.trim();
 
-      // SOLO YOUTUBE usa <iframe>
-      if (
-        sitio.video.includes("youtube.com") ||
-        sitio.video.includes("youtu.be")
-      ) {
+      // CASO 1: YouTube o Shorts
+      if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
+        let embedUrl = videoUrl;
+
+        if (videoUrl.includes("shorts/")) {
+          let id = videoUrl.split("shorts/")[1].split("?")[0];
+          embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}`;
+        } else if (videoUrl.includes("watch?v=")) {
+          let id = videoUrl.split("watch?v=")[1].split("&")[0];
+          embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}`;
+        } else if (videoUrl.includes("youtu.be/")) {
+          let id = videoUrl.split("youtu.be/")[1].split("?")[0];
+          embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}`;
+        }
+
         if (videoTag) {
           videoTag.classList.add("hidden");
           videoTag.pause();
@@ -504,41 +511,73 @@ function selectSite(siteKey) {
         }
         if (videoIframe) {
           videoIframe.classList.remove("hidden");
-          videoIframe.src = formattedVideoUrl;
+          videoIframe.src = embedUrl;
         }
+        if (btnSound) btnSound.classList.add("hidden");
       }
-      // GOOGLE DRIVE y archivos directos usan la etiqueta <video>
+      // CASO 2: Google Drive o archivos directos
       else {
+        let directVideoUrl = videoUrl;
+        let match = videoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          directVideoUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+
         if (videoIframe) {
           videoIframe.classList.add("hidden");
           videoIframe.src = "";
         }
         if (videoTag) {
           videoTag.classList.remove("hidden");
-          videoTag.src = formattedVideoUrl;
-          videoTag.load(); // Vital para que el navegador procese el video de Drive
+          videoTag.src = directVideoUrl;
+          videoTag.muted = true;
+          videoTag.load();
+          videoTag
+            .play()
+            .catch(() =>
+              console.log(
+                "Reproducción de video en espera de interacción manual",
+              ),
+            );
+        }
+        if (btnSound) btnSound.classList.remove("hidden");
+
+        const soundIcon = document.getElementById("sound-icon");
+        const soundText = document.getElementById("sound-text");
+        if (soundIcon && soundText) {
+          soundIcon.className = "ri-volume-mute-fill text-amber-400 text-sm";
+          soundText.textContent = "Activar Audio del Video";
         }
       }
     } else {
       videoWrapper.classList.add("hidden");
-      if (videoIframe) videoIframe.src = "";
+      if (videoIframe) {
+        videoIframe.src = "";
+        videoIframe.classList.add("hidden");
+      }
       if (videoTag) {
         videoTag.pause();
         videoTag.src = "";
+        videoTag.classList.add("hidden");
       }
+      if (btnSound) btnSound.classList.add("hidden");
     }
   }
 
-  // Comprobar si startAutoSlide existe antes de llamarla para evitar errores
+  // Activar carrusel de imágenes si existe la función
   if (typeof startAutoSlide === "function") {
     startAutoSlide();
   }
 }
+// ==========================================
+// 7. GESTIÓN DE MULTIMEDIA Y CARRUSEL DE FOTOS
+// ==========================================
+
 function formatMultimediaUrl(url) {
   if (!url || typeof url !== "string") return "";
   let cleanUrl = url.trim();
 
-  // Si es un enlace de Google Drive, lo convertimos a enlace de reproducción directa
+  // Si es un enlace de Google Drive, lo convertimos a enlace de reproducción/descarga directa
   if (cleanUrl.includes("drive.google.com")) {
     let match = cleanUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (match && match[1]) {
@@ -547,6 +586,7 @@ function formatMultimediaUrl(url) {
   }
   return cleanUrl;
 }
+
 function setupGalleryScroll() {
   const galleryScroll = document.getElementById("detail-gallery-scroll");
   const controls = document.getElementById("carousel-controls");
@@ -598,7 +638,9 @@ function updateIndicators() {
   indicators.innerHTML = "";
   currentImages.forEach((_, idx) => {
     const dot = document.createElement("span");
-    dot.className = `h-2 rounded-full transition-all ${idx === currentImageIndex ? "w-6 bg-white" : "w-2 bg-white/50"}`;
+    dot.className = `h-2 rounded-full transition-all ${
+      idx === currentImageIndex ? "w-6 bg-white" : "w-2 bg-white/50"
+    }`;
     indicators.appendChild(dot);
   });
 }
@@ -622,6 +664,7 @@ function stopAutoSlide() {
 function pauseAutoSlide() {
   stopAutoSlide();
 }
+
 function resumeAutoSlide() {
   startAutoSlide();
 }
@@ -683,6 +726,10 @@ function switchView(viewName) {
   }
 }
 
+// ==========================================
+// 8. CONTROLADORES DE PANELES, MODALES Y BOTTOM SHEET
+// ==========================================
+
 function showBottomSheet() {
   const sheet = document.getElementById("mobile-bottom-sheet");
   if (sheet) sheet.classList.remove("translate-y-full");
@@ -709,9 +756,9 @@ function closeAddModal() {
   if (modal) modal.classList.add("hidden");
 }
 
-// ============================================================
-// GUARDAR NUEVO SITIO (VERIFICADO Y CORREGIDO)
-// ============================================================
+// ==========================================
+// CONTROLADOR PARA AÑADIR NUEVOS SITIOS
+// ==========================================
 async function handleAddNewSite(event) {
   event.preventDefault();
 
@@ -742,7 +789,7 @@ async function handleAddNewSite(event) {
       return;
     }
 
-    // Crear el objeto del nuevo sitio (con el video formateado correctamente igual que el audio)
+    // Crear el objeto del nuevo sitio (CORREGIDO: usa formatVideoUrl para el video)
     const newSite = {
       id: siguienteId,
       tipo: document.getElementById("input-tipo").value.trim(),
@@ -761,10 +808,12 @@ async function handleAddNewSite(event) {
       longitud: lngVal,
       fotos: imagenesArray,
       audio: audioInputText ? formatImageUrl(audioInputText) : "",
-      video: videoInputText ? formatImageUrl(videoInputText) : "",
+      video: videoInputText ? formatVideoUrl(videoInputText) : "", // <--- CORREGIDO AQUÍ
     };
 
-    mostrarMensajeExito("Enviando enlaces a Google Sheets...");
+    if (typeof mostrarMensajeExito === "function") {
+      mostrarMensajeExito("Enviando enlaces a Google Sheets...");
+    }
 
     // Petición POST a Apps Script
     const response = await fetch(URL_APPS_SCRIPT, {
@@ -818,33 +867,41 @@ async function handleAddNewSite(event) {
       map.setView([newSite.latitud, newSite.longitud], 16);
     }
 
-    mostrarMensajeExito(
-      "¡Lugar guardado correctamente con sus enlaces de Drive!",
-    );
+    if (typeof mostrarMensajeExito === "function") {
+      mostrarMensajeExito("¡Lugar guardado correctamente en Google Sheets!");
+    }
   } catch (error) {
     console.error("Error detallado al guardar:", error);
     alert("Hubo un problema al guardar:\n\n" + error.message);
   }
 }
+// ==========================================
+// FILTROS DE BÚSQUEDA PARA LEYENDA Y DIRECTORIO
+// ==========================================
 
-// ==========================================
-// 8. FILTROS Y TOGGLE SIDEBAR
-// ==========================================
 function filterLegendList(query) {
-  const q = query.toLowerCase();
+  const q = (query || "").toLowerCase().trim();
   document.querySelectorAll(".legend-item").forEach((item) => {
-    const name = item.getAttribute("data-name") || "";
+    const name = (item.getAttribute("data-name") || "").toLowerCase();
     item.style.display = name.includes(q) ? "flex" : "none";
   });
 }
 
 function filterFullList(query) {
-  const q = query.toLowerCase();
+  const q = (query || "").toLowerCase().trim();
   document.querySelectorAll(".directory-card").forEach((card) => {
-    const name = card.getAttribute("data-name") || "";
+    const name = (card.getAttribute("data-name") || "").toLowerCase();
     card.style.display = name.includes(q) ? "flex" : "none";
   });
 }
+
+// ==========================================
+// 8. CONTROL DE SIDEBAR Y NOTIFICACIONES
+// ==========================================
+
+// ==========================================
+// CONTROL DE SIDEBAR Y NOTIFICACIONES
+// ==========================================
 
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar-legend");
@@ -853,33 +910,40 @@ function toggleSidebar() {
 
   if (!sidebar) return;
 
+  // Verificamos si el panel está oculto revisando si contiene la clase 'hidden'
   const isHidden = sidebar.classList.contains("hidden");
 
   if (isHidden) {
+    // ACCIÓN: MOSTRAR EL PANEL LATERAL Y OCULTAR EL BOTÓN FLOTANTE
     sidebar.classList.remove("hidden");
     sidebar.classList.add("flex");
+
     if (toggleIcon) toggleIcon.className = "ri-menu-fold-line text-sm";
 
     if (floatBtn) {
       floatBtn.classList.add("hidden");
-      floatBtn.classList.remove("flex");
+      floatBtn.classList.remove("flex", "md:flex"); // Limpiamos los estados flex para forzar el ocultamiento
     }
   } else {
+    // ACCIÓN: OCULTAR EL PANEL LATERAL Y MOSTRAR EL BOTÓN FLOTANTE
     sidebar.classList.remove("flex");
     sidebar.classList.add("hidden");
+
     if (toggleIcon) toggleIcon.className = "ri-menu-unfold-line text-sm";
 
     if (floatBtn) {
       floatBtn.classList.remove("hidden");
-      floatBtn.classList.add("flex");
+      floatBtn.classList.add("flex"); // Forzamos la visualización limpia del botón flotante
     }
   }
 
+  // Refrescar Leaflet para que el mapa ocupe el nuevo espacio disponible
   setTimeout(() => {
-    if (map) map.invalidateSize();
+    if (typeof map !== "undefined" && map !== null) {
+      map.invalidateSize();
+    }
   }, 200);
 }
-
 // ==========================================
 // 9. MENSAJE DE ÉXITO FLOTANTE
 // ==========================================
@@ -904,60 +968,6 @@ function mostrarMensajeExito(texto) {
   }, 4000);
 }
 
-// ==========================================
-// CONTROL DE PESTAÑAS MULTIMEDIA EN LA FICHA DE DETALLE
-// ==========================================
-function switchMediaType(type) {
-  // Contenedores multimedia
-  const containerFotos = document.getElementById("media-container-fotos");
-  const containerVideo = document.getElementById("media-container-video");
-  const containerAudio = document.getElementById("media-container-audio");
-
-  // Botones de las pestañas
-  const btnFotos = document.getElementById("btn-tab-fotos");
-  const btnVideo = document.getElementById("btn-tab-video");
-  const btnAudio = document.getElementById("btn-tab-audio");
-
-  // Ocultar todos los contenedores y pausar reproducción si la hubiera
-  if (containerFotos) containerFotos.classList.add("hidden");
-  if (containerVideo) containerVideo.classList.add("hidden");
-  if (containerAudio) containerAudio.classList.add("hidden");
-
-  // Resetear estilos activos de los botones (darles apariencia inactiva)
-  const inactiveClasses = "text-gray-600 hover:text-gray-900 bg-transparent";
-  const activeClasses = "text-gray-900 bg-white shadow-xs";
-
-  [btnFotos, btnVideo, btnAudio].forEach((btn) => {
-    if (btn) {
-      btn.className = btn.className.replace(activeClasses, inactiveClasses);
-      if (!btn.className.includes("text-gray-600")) {
-        btn.classList.add("text-gray-600");
-      }
-    }
-  });
-
-  // Mostrar el contenedor seleccionado y activar su botón correspondiente
-  if (type === "fotos") {
-    if (containerFotos) containerFotos.classList.remove("hidden");
-    if (btnFotos) {
-      btnFotos.classList.remove("text-gray-600", "hover:text-gray-900");
-      btnFotos.classList.add("text-gray-900", "bg-white", "shadow-xs");
-    }
-  } else if (type === "video") {
-    if (containerVideo) containerVideo.classList.remove("hidden");
-    if (btnVideo) {
-      btnVideo.classList.remove("text-gray-600", "hover:text-gray-900");
-      btnVideo.classList.add("text-gray-900", "bg-white", "shadow-xs");
-    }
-  } else if (type === "audio") {
-    if (containerAudio) containerAudio.classList.remove("hidden");
-    if (btnAudio) {
-      btnAudio.classList.remove("text-gray-600", "hover:text-gray-900");
-      btnAudio.classList.add("text-gray-900", "bg-white", "shadow-xs");
-    }
-  }
-}
-
 // Variable global para almacenar el video actual
 let currentVideoUrl = "";
 
@@ -967,15 +977,24 @@ function loadVideo(videoUrl) {
   const iframe = document.getElementById("detail-video-iframe");
   const videoTag = document.getElementById("detail-video-tag");
   const btnSound = document.getElementById("btn-toggle-sound");
+  const videoWrapper = document.getElementById("media-container-video");
 
   if (!videoUrl || videoUrl.trim() === "") {
-    iframe.src = "";
-    iframe.classList.add("hidden");
-    videoTag.src = "";
-    videoTag.classList.add("hidden");
-    btnSound.classList.add("hidden");
+    if (videoWrapper) videoWrapper.classList.add("hidden");
+    if (iframe) {
+      iframe.src = "";
+      iframe.classList.add("hidden");
+    }
+    if (videoTag) {
+      videoTag.src = "";
+      videoTag.classList.add("hidden");
+      videoTag.pause();
+    }
+    if (btnSound) btnSound.classList.add("hidden");
     return;
   }
+
+  if (videoWrapper) videoWrapper.classList.remove("hidden");
 
   // 1. CASO: YouTube o Shorts
   if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
@@ -992,33 +1011,41 @@ function loadVideo(videoUrl) {
       embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}`;
     }
 
-    iframe.src = embedUrl;
-    iframe.classList.remove("hidden");
-    videoTag.classList.add("hidden");
-    videoTag.pause();
-    btnSound.classList.add("hidden");
+    if (iframe) {
+      iframe.src = embedUrl;
+      iframe.classList.remove("hidden");
+    }
+    if (videoTag) {
+      videoTag.classList.add("hidden");
+      videoTag.pause();
+      videoTag.src = "";
+    }
+    if (btnSound) btnSound.classList.add("hidden");
   }
   // 2. CASO: Google Drive (Video)
   else if (videoUrl.includes("drive.google.com")) {
+    let directVideoUrl = videoUrl;
     let match = videoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (match && match[1]) {
-      videoTag.src = `https://drive.google.com/uc?export=download&id=${match[1]}`;
-    } else {
-      videoTag.src = videoUrl;
+      directVideoUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
     }
 
-    videoTag.muted = true;
-    videoTag.load();
-    videoTag
-      .play()
-      .catch((e) =>
-        console.log("Reproducción de video en espera de interacción manual"),
-      );
-
-    videoTag.classList.remove("hidden");
-    iframe.classList.add("hidden");
-    iframe.src = "";
-    btnSound.classList.remove("hidden"); // Muestra el botón para activar sonido en Drive
+    if (videoTag) {
+      videoTag.src = directVideoUrl;
+      videoTag.muted = true;
+      videoTag.load();
+      videoTag
+        .play()
+        .catch(() =>
+          console.log("Reproducción de video en espera de interacción manual"),
+        );
+      videoTag.classList.remove("hidden");
+    }
+    if (iframe) {
+      iframe.classList.add("hidden");
+      iframe.src = "";
+    }
+    if (btnSound) btnSound.classList.remove("hidden");
 
     const soundIcon = document.getElementById("sound-icon");
     const soundText = document.getElementById("sound-text");
@@ -1029,22 +1056,44 @@ function loadVideo(videoUrl) {
   }
 }
 
-// Función para cargar el Audio (Soporta Google Drive o enlaces directos de audio)
-// Función para cargar el Audio (Soporta Google Drive o enlaces directos de audio)
+// Función para alternar el sonido del video de Google Drive
+function toggleVideoMute() {
+  const videoTag = document.getElementById("detail-video-tag");
+  const soundIcon = document.getElementById("sound-icon");
+  const soundText = document.getElementById("sound-text");
+
+  if (!videoTag) return;
+
+  videoTag.muted = !videoTag.muted;
+
+  if (videoTag.muted) {
+    if (soundIcon)
+      soundIcon.className = "ri-volume-mute-fill text-amber-400 text-sm";
+    if (soundText) soundText.textContent = "Activar Audio del Video";
+  } else {
+    if (soundIcon)
+      soundIcon.className = "ri-volume-up-fill text-amber-400 text-sm";
+    if (soundText) soundText.textContent = "Silenciar Video";
+  }
+}
+
+// Función para cargar el Audio (Soporta Google Drive o enlaces directos)
 function loadAudio(audioUrl) {
   const audioElement = document.getElementById("detail-audio");
-  if (!audioElement) return;
+  const audioWrapper = document.getElementById("media-container-audio");
 
-  // Validar si el campo está vacío o es un texto simple como "audio01" sin enlace
+  if (!audioElement || !audioWrapper) return;
+
   if (!audioUrl || audioUrl.trim() === "" || !audioUrl.includes("http")) {
+    audioWrapper.classList.add("hidden");
     audioElement.src = "";
-    console.warn("El campo de audio no contiene una URL válida:", audioUrl);
+    audioElement.pause();
     return;
   }
 
+  audioWrapper.classList.remove("hidden");
   let directAudioUrl = audioUrl.trim();
 
-  // Si el enlace de audio es de Google Drive, lo convertimos a enlace de descarga directa
   if (directAudioUrl.includes("drive.google.com")) {
     let match = directAudioUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (match && match[1]) {
@@ -1054,4 +1103,4 @@ function loadAudio(audioUrl) {
 
   audioElement.src = directAudioUrl;
   audioElement.load();
-} // <-- ¡Cierre correcto de la función loadAudio!
+}

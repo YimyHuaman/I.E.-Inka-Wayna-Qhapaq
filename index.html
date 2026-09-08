@@ -152,9 +152,11 @@
                 <div
                     class="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-sm font-bold text-amber-900">Directorio Institucional de Huilloc</h2>
-                        <p class="text-xs text-gray-500">Listado completo de puntos arqueológicos y espacios de interés
-                            histórico.</p>
+                        <h2 class="text-sm font-bold text-amber-900">El Qhapaq Ñan (o Sistema Vial Andino) en
+                            Ollantaytambo - Huilloc</h2>
+                        <p class="text-xs text-gray-500">La ruta que conecta Ollantaytambo con la comunidad de Huilloc
+                            recorre antiguos caminos andinos y valles de gran valor histórico en la cuenca de
+                            Patacancha. </p>
                     </div>
                     <div class="relative w-full sm:w-64">
                         <i class="ri-search-line absolute left-3 top-2.5 text-gray-400 text-xs"></i>
@@ -175,45 +177,46 @@
             class="absolute inset-0 bg-gradient-to-b from-amber-50/30 to-white overflow-y-auto hidden z-30">
             <div class="max-w-3xl mx-auto pb-16">
 
-                <!-- Barra superior: Volver al mapa y selector multimedia -->
+                <!-- Barra Superior Sticky -->
                 <div
-                    class="sticky top-0 bg-white/95 backdrop-blur-md px-3 sm:px-5 py-3 border-b border-amber-100/60 flex items-center justify-between gap-2 z-20 shadow-xs">
-
-                    <!-- Botón Volver al Mapa -->
+                    class="sticky top-0 bg-white/95 backdrop-blur-md px-3 sm:px-5 py-3 border-b border-amber-100/60 flex items-center justify-between gap-2.5 z-20 shadow-xs">
+                    <!-- Botón Izquierdo: Volver al Mapa -->
                     <button onclick="switchView('map')"
-                        class="flex items-center space-x-1.5 text-xs font-bold text-amber-900 bg-amber-100/80 px-3 py-2 rounded-xl border border-amber-200/60 hover:bg-amber-200 transition-all shadow-2xs shrink-0">
-                        <i class="ri-arrow-left-line text-sm"></i>
-                        <span class="hidden sm:inline">Volver al Mapa</span>
+                        class="flex items-center justify-center w-11 h-11 sm:w-auto sm:px-3.5 py-2.5 rounded-xl bg-amber-100/80 hover:bg-amber-200 text-amber-900 border border-amber-200/60 transition-all shadow-2xs shrink-0">
+                        <i class="ri-arrow-left-line text-base"></i>
+                        <span class="hidden sm:inline ml-1.5 text-xs font-bold">Volver al Mapa</span>
                     </button>
 
-                    <!-- Selector multimedia -->
+                    <!-- Tarjeta Central con la Información (Nombre, Tipo y Ubicación) -->
                     <div
-                        class="flex items-center space-x-1 bg-gray-100/90 backdrop-blur-md p-1 rounded-xl border border-gray-200/60 shadow-2xs">
-                        <button onclick="switchMediaType('fotos')" id="btn-tab-fotos"
-                            class="flex items-center justify-center space-x-1.5 w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900 transition-all shrink-0"
-                            title="Fotos">
-                            <i class="ri-image-line text-sm"></i>
-                            <span class="hidden sm:inline">Fotos</span>
-                        </button>
-                        <button onclick="switchMediaType('video')" id="btn-tab-video"
-                            class="flex items-center justify-center space-x-1.5 w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900 transition-all shrink-0"
-                            title="Video">
-                            <i class="ri-video-line text-sm"></i>
-                            <span class="hidden sm:inline">Video</span>
-                        </button>
-                        <button onclick="switchMediaType('audio')" id="btn-tab-audio"
-                            class="flex items-center justify-center space-x-1.5 w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:text-gray-900 transition-all shrink-0"
-                            title="Audio">
-                            <i class="ri-volume-up-line text-sm"></i>
-                            <span class="hidden sm:inline">Audio</span>
-                        </button>
+                        class="bg-white p-3 sm:p-4 rounded-2xl border border-amber-100 shadow-xs space-y-2 flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 id="detail-title"
+                                class="text-sm sm:text-base font-black text-gray-900 tracking-tight truncate">
+                                Nombre del Lugar
+                            </h2>
+                            <span id="detail-subtitle"
+                                class="text-[9px] font-extrabold text-amber-800 uppercase bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-200 shrink-0">
+                                Tipo
+                            </span>
+                        </div>
+                        <div
+                            class="flex items-center space-x-1.5 bg-amber-50 px-2.5 py-1.5 rounded-xl border border-amber-100 text-[11px] sm:text-xs font-medium text-gray-600 truncate">
+                            <i class="ri-map-pin-2-fill text-amber-800 text-xs shrink-0"></i>
+                            <span id="detail-location" class="truncate">Ubicación</span>
+                        </div>
                     </div>
+
+                    <!-- Botón Derecho: Ir -->
+                    <button onclick="irAlMapaOpcion()"
+                        class="flex items-center justify-center w-11 h-11 sm:w-auto sm:px-4 py-2.5 rounded-xl bg-amber-900 hover:bg-amber-800 text-white transition-all shadow-xs shrink-0">
+                        <i class="ri-navigation-fill text-base"></i>
+                        <span class="hidden sm:inline ml-1.5 text-xs font-bold">Ir</span>
+                    </button>
                 </div>
 
-                <!-- Visor Multimedia Superior -->
+                <!-- Visor Multimedia Superior (Solo FOTOS) -->
                 <div class="relative w-full h-72 sm:h-96 md:h-[420px] bg-gray-900 overflow-hidden shadow-md">
-
-                    <!-- CONTENEDOR 1: FOTOS -->
                     <div id="media-container-fotos" class="w-full h-full relative">
                         <div id="detail-gallery-scroll"
                             class="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
@@ -237,73 +240,11 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- CONTENEDOR 2: VIDEO (Soporta YouTube, Shorts y Google Drive) -->
-                    <div id="media-container-video"
-                        class="w-full h-full hidden relative bg-black flex items-center justify-center">
-                        <!-- Iframe para YouTube y Shorts -->
-                        <iframe id="detail-video-iframe" class="w-full h-full border-0 hidden"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen></iframe>
-
-                        <!-- Etiqueta Video HTML5 para Google Drive -->
-                        <video id="detail-video-tag" class="w-full h-full object-contain hidden" controls playsinline>
-                            Tu navegador no soporta reproducción de video.
-                        </video>
-
-                        <!-- Botón de silenciar/activar audio para Drive -->
-                        <button onclick="toggleVideoMute()" id="btn-toggle-sound"
-                            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 hover:bg-black text-white px-3.5 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-bold backdrop-blur-md border border-white/20 shadow-lg flex items-center space-x-2 transition-all whitespace-nowrap hidden">
-                            <i class="ri-volume-mute-fill text-amber-400 text-sm" id="sound-icon"></i>
-                            <span id="sound-text">Activar Audio del Video</span>
-                        </button>
-                    </div>
-
-                    <!-- CONTENEDOR 3: AUDIO -->
-                    <div id="media-container-audio"
-                        class="w-full h-full hidden relative bg-amber-950/95 flex flex-col items-center justify-center p-4 sm:p-6 text-center">
-                        <div
-                            class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 text-xl sm:text-2xl mb-3 sm:mb-4 shadow-inner">
-                            <i class="ri-headphone-line animate-pulse"></i>
-                        </div>
-                        <h3 class="text-white font-bold text-xs sm:text-sm mb-1 px-4" id="audio-title-label">Audio Guía
-                            del Lugar</h3>
-                        <p class="text-amber-200/70 text-[11px] sm:text-xs mb-4 sm:mb-6 px-4">Escucha la narración
-                            detallada de este espacio</p>
-                        <audio id="detail-audio" controls class="w-full max-w-sm sm:max-w-md accent-amber-500 h-10">
-                            Tu navegador no soporta elementos de audio.
-                        </audio>
-                    </div>
-
                 </div>
 
-                <!-- Contenido Informativo Detallado -->
+                <!-- Contenido Informativo Detallado y Contenedores Independientes Abajo -->
                 <div class="px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 space-y-5 sm:space-y-6">
-                    <div
-                        class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-amber-100 shadow-xs space-y-3">
-                        <div>
-                            <span id="detail-subtitle"
-                                class="text-[10px] font-extrabold text-amber-800 uppercase bg-amber-100/70 px-2.5 py-1 rounded-lg border border-amber-200">Tipo</span>
-                            <h2 id="detail-title"
-                                class="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 mt-2 tracking-tight">
-                                Nombre del Lugar</h2>
-                        </div>
-                        <div
-                            class="flex flex-wrap items-center gap-3 text-xs font-medium text-gray-600 pt-2 border-t border-gray-100">
-                            <div
-                                class="flex items-center space-x-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
-                                <i class="ri-map-pin-2-fill text-amber-800 text-sm"></i>
-                                <span id="detail-location">Ubicación</span>
-                            </div>
-                            <div
-                                class="flex items-center space-x-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
-                                <i class="ri-time-fill text-amber-800 text-sm"></i>
-                                <span id="detail-schedule">Abierto</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bloques de Texto -->
+                    <!-- Bloques de Texto: Reseña Histórica y Descripción Detallada -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                         <div
                             class="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-100 shadow-xs space-y-3 flex flex-col justify-between">
@@ -337,10 +278,54 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- CONTENEDORES INDEPENDIENTES DE VIDEO Y AUDIO (Debajo de la descripción) -->
+                    <div class="space-y-4 pt-2">
+
+                        <!-- CONTENEDOR 2: VIDEO -->
+                        <div id="media-container-video"
+                            class="w-full h-72 sm:h-96 md:h-[380px] hidden relative bg-black rounded-2xl sm:rounded-3xl overflow-hidden shadow-md flex items-center justify-center">
+                            <!-- Iframe para YouTube y Shorts -->
+                            <iframe id="detail-video-iframe" class="w-full h-full border-0 hidden"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen></iframe>
+
+                            <!-- Etiqueta Video HTML5 para Google Drive -->
+                            <video id="detail-video-tag" class="w-full h-full object-contain hidden" controls
+                                playsinline>
+                                Tu navegador no soporta reproducción de video.
+                            </video>
+
+                            <!-- Botón de silenciar/activar audio para Drive -->
+                            <button onclick="toggleVideoMute()" id="btn-toggle-sound"
+                                class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 hover:bg-black text-white px-3.5 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-bold backdrop-blur-md border border-white/20 shadow-lg flex items-center space-x-2 transition-all whitespace-nowrap hidden">
+                                <i class="ri-volume-mute-fill text-amber-400 text-sm" id="sound-icon"></i>
+                                <span id="sound-text">Activar Audio del Video</span>
+                            </button>
+                        </div>
+
+                        <!-- CONTENEDOR 3: AUDIO (Solo reproductor limpio e independiente) -->
+                        <div id="media-container-audio"
+                            class="w-full hidden bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-100 shadow-xs flex flex-col space-y-2">
+                            <div class="flex items-center space-x-2 text-amber-900">
+                                <span
+                                    class="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center text-amber-900 shrink-0">
+                                    <i class="ri-headphone-line text-sm"></i>
+                                </span>
+                                <h3 class="text-xs font-extrabold uppercase tracking-wider" id="audio-title-label">Audio
+                                    Guía del Lugar</h3>
+                            </div>
+                            <!-- Reproductor nativo limpio -->
+                            <audio id="detail-audio" controls class="w-full accent-amber-900 h-10 mt-1">
+                                Tu navegador no soporta elementos de audio.
+                            </audio>
+                        </div>
+
+                    </div>
                 </div>
+
             </div>
         </div>
-
         <!-- ========================================== -->
         <!-- TARJETA FLOTANTE MÓVIL (BOTTOM SHEET)      -->
         <!-- ========================================== -->
