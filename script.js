@@ -213,7 +213,8 @@ function parseCSV(text) {
 // FUNCIÓN AUXILIAR: PIN DE MAPA CON FOTO CIRCULAR
 // ==========================================
 function createPlaceIcon(imageUrl) {
-  let photo = imageUrl && imageUrl.trim() !== "" ? imageUrl.trim() : "img/width_644.png";
+  let photo =
+    imageUrl && imageUrl.trim() !== "" ? imageUrl.trim() : "img/width_644.png";
 
   if (photo.includes("drive.google.com")) {
     let match = photo.match(/\/d\/([a-zA-Z0-9_-]+)/);
@@ -445,29 +446,34 @@ function selectSite(siteKey) {
     dDesc.textContent = sitio.descripcion || "Sin descripción detallada.";
 
   // ==========================================
-  // MANEJO DE AUDIO (Sincronizado con HTML)
+  // MANEJO DE AUDIO (Sincronizado con HTML y archivos locales)
   // ==========================================
   const audioWrapper = document.getElementById("media-container-audio");
   const audioTag = document.getElementById("detail-audio");
 
   if (audioWrapper && audioTag) {
-    if (
-      sitio.audio &&
-      sitio.audio.trim() !== "" &&
-      sitio.audio.includes("http")
-    ) {
-      audioWrapper.classList.remove("hidden");
-      let directAudioUrl = sitio.audio.trim();
+    let rawAudio = sitio.audio ? sitio.audio.trim() : "";
 
-      // Convertir enlace de Google Drive si es necesario
-      if (directAudioUrl.includes("drive.google.com")) {
-        let match = directAudioUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-          directAudioUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+    if (rawAudio !== "") {
+      audioWrapper.classList.remove("hidden");
+      let finalAudioUrl = "";
+
+      // Si es un enlace web o Drive
+      if (rawAudio.includes("http")) {
+        finalAudioUrl = rawAudio;
+        if (finalAudioUrl.includes("drive.google.com")) {
+          let match = finalAudioUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (match && match[1]) {
+            finalAudioUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+          }
         }
+      } else {
+        // Si es un archivo local, apunta a la carpeta "audio/"
+        let fileName = rawAudio.split("/").pop();
+        finalAudioUrl = `audio/${fileName}`;
       }
 
-      audioTag.src = directAudioUrl;
+      audioTag.src = finalAudioUrl;
       audioTag.load();
     } else {
       audioWrapper.classList.add("hidden");
@@ -477,7 +483,7 @@ function selectSite(siteKey) {
   }
 
   // ==========================================
-  // MANEJO DE VIDEO (YouTube, Shorts y Drive)
+  // MANEJO DE VIDEO (YouTube, Shorts, Drive y Locales)
   // ==========================================
   const videoWrapper = document.getElementById("media-container-video");
   const videoIframe = document.getElementById("detail-video-iframe");
@@ -515,12 +521,19 @@ function selectSite(siteKey) {
         }
         if (btnSound) btnSound.classList.add("hidden");
       }
-      // CASO 2: Google Drive o archivos directos
+      // CASO 2: Google Drive o archivos locales directos
       else {
         let directVideoUrl = videoUrl;
-        let match = videoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-          directVideoUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+
+        if (directVideoUrl.includes("drive.google.com")) {
+          let match = directVideoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (match && match[1]) {
+            directVideoUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+          }
+        } else if (!directVideoUrl.includes("http")) {
+          // Si no tiene http, asumimos archivo local en la carpeta "video/"
+          let fileName = directVideoUrl.split("/").pop();
+          directVideoUrl = `video/${fileName}`;
         }
 
         if (videoIframe) {
@@ -1103,4 +1116,108 @@ function loadAudio(audioUrl) {
 
   audioElement.src = directAudioUrl;
   audioElement.load();
+}
+
+function cargarMediosInteligentes(sitio) {
+  // 1. Elementos del DOM basados en tu HTML
+  const videoContainer = document.getElementById("media-container-video");
+  const videoIframe = document.getElementById("detail-video-iframe");
+  const videoTag = document.getElementById("detail-video-tag");
+  const btnToggleSound = document.getElementById("btn-toggle-sound");
+
+  const audioContainer = document.getElementById("media-container-audio");
+  const audioTag = document.getElementById("detail-audio");
+
+  // ==========================================
+  // PROCESAMIENTO DE VIDEO (YouTube, Local o Drive)
+  // ==========================================
+  let rawVideo = sitio.video ? sitio.video.trim() : "";
+
+  if (rawVideo === "") {
+    // Si está vacío, ocultamos todo el contenedor de video
+    videoContainer.classList.add("hidden");
+    videoIframe.classList.add("hidden");
+    videoTag.classList.add("hidden");
+    if (btnToggleSound) btnToggleSound.classList.add("hidden");
+  } else {
+    videoContainer.classList.remove("hidden");
+
+    // CASO A: Es un enlace de YouTube (Normal o Shorts)
+    if (rawVideo.includes("youtube.com") || rawVideo.includes("youtu.be")) {
+      let youtubeEmbedUrl = "";
+
+      if (rawVideo.includes("shorts/")) {
+        let parts = rawVideo.split("shorts/");
+        let id = parts[1].split("?")[0];
+        youtubeEmbedUrl = `https://www.youtube.com/embed/${id}`;
+      } else if (rawVideo.includes("watch?v=")) {
+        let parts = rawVideo.split("watch?v=");
+        let id = parts[1].split("&")[0];
+        youtubeEmbedUrl = `https://www.youtube.com/embed/${id}`;
+      } else if (rawVideo.includes("youtu.be/")) {
+        let parts = rawVideo.split("youtu.be/");
+        let id = parts[1].split("?")[0];
+        youtubeEmbedUrl = `https://www.youtube.com/embed/${id}`;
+      }
+
+      // Mostramos iframe de YouTube y ocultamos video local
+      videoIframe.src = youtubeEmbedUrl;
+      videoIframe.classList.remove("hidden");
+      videoTag.classList.add("hidden");
+      if (btnToggleSound) btnToggleSound.classList.add("hidden");
+    }
+    // CASO B: Es un archivo local (ej. relato1.mp4 o video/relato1.mp4)
+    else {
+      let fileName = rawVideo.split("/").pop(); // Extrae solo el nombre si escribieron "video/relato1.mp4"
+      let localVideoSrc = `video/${fileName}`; // Apunta a tu carpeta "video"
+
+      videoTag.src = localVideoSrc;
+      videoTag.classList.remove("hidden");
+      videoIframe.classList.add("hidden");
+      if (btnToggleSound) btnToggleSound.classList.add("hidden");
+      videoTag.load();
+    }
+  }
+
+  // ==========================================
+  // PROCESAMIENTO DE AUDIO (Local o Drive)
+  // ==========================================
+  let rawAudio = sitio.audio ? sitio.audio.trim() : "";
+
+  if (rawAudio === "") {
+    audioContainer.classList.add("hidden");
+  } else {
+    audioContainer.classList.remove("hidden");
+
+    let audioFileName = rawAudio.split("/").pop(); // Extrae el nombre (ej. audio1.mp3)
+    let localAudioSrc = `audio/${audioFileName}`; // Apunta a tu carpeta "audio"
+
+    audioTag.src = localAudioSrc;
+    audioTag.load();
+  }
+}
+function irAlMapaOpcion() {
+  const sitio = sitiosArqueologicos[activeSiteKey];
+  if (!sitio) {
+    alert("Por favor, selecciona un lugar primero.");
+    return;
+  }
+
+  // Verifica si el objeto tiene coordenadas guardadas (ej. lat y lng)
+  if (sitio.lat && sitio.lng) {
+    // Abre la ruta usando latitud y longitud exactas desde la ubicación actual (api=1&destination=lat,lng)
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${sitio.lat},${sitio.lng}`;
+    window.open(url, "_blank");
+  } else if (sitio.ubicacion) {
+    // Si no hay coordenadas, usa el texto de la ubicación registrada
+    const destinoCodificado = encodeURIComponent(
+      sitio.ubicacion + ", Ollantaytambo, Cusco",
+    );
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destinoCodificado}`;
+    window.open(url, "_blank");
+  } else {
+    alert(
+      "Este sitio no cuenta con coordenadas o ubicación exacta registrada.",
+    );
+  }
 }
