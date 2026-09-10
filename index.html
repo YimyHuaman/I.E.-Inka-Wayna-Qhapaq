@@ -134,13 +134,6 @@
                 </div>
             </aside>
 
-            <!-- Botón flotante para reabrir el panel (Inicia oculto porque el panel está visible por defecto en PC) -->
-            <button id="btn-show-sidebar" onclick="toggleSidebar()"
-                class="hidden absolute left-3 top-3 bg-white text-amber-900 p-2.5 rounded-xl shadow-lg border border-amber-200 z-30 md:flex items-center space-x-1.5 text-xs font-bold hover:bg-amber-50 transition-all">
-                <i class="ri-menu-unfold-line text-sm text-amber-800"></i>
-                <span>Panel</span>
-            </button>
-
             <!-- Contenedor del Mapa Leaflet (Ocupa el 100% en celular y el resto en PC) -->
             <div id="map" class="flex-1 h-full w-full z-10"></div>
         </div>
@@ -348,8 +341,6 @@
                         class="inline-block text-[9px] font-bold text-amber-800 uppercase bg-amber-50 px-1.5 py-0.5 rounded truncate max-w-full">Tipo</span>
                     <h3 id="sheet-title" class="text-sm font-bold text-gray-900 truncate mt-0.5 w-full">Título</h3>
                     <p id="sheet-subtitle" class="text-[11px] text-gray-500 truncate w-full">Subtítulo</p>
-                    <p id="sheet-schedule" class="text-[10px] text-amber-900 font-semibold truncate mt-0.5 w-full">
-                        Horario</p>
                 </div>
             </div>
 
